@@ -914,17 +914,51 @@ function skipAuthWithTelegram() {
 }
 
 // ==================== AUTH ====================
-function sendOTP() {
+async function sendOTP() {
   const raw = document.getElementById('phone-input').value.replace(/\D/g,'');
   if (raw.length < 9) { showToast('❌ Telefon raqamni to\'liq kiriting'); return; }
   state.phone = '+998' + raw;
-  // Demo: set fake OTP as 1234
-  document.getElementById('otp-sub').textContent = state.phone + ' ga SMS kod yuborildi';
-  document.getElementById('auth-phone').style.display = 'none';
-  document.getElementById('auth-otp').style.display = 'block';
-  document.getElementById('otp0').focus();
-  showToast('📨 Demo kod: 1 2 3 4');
-  setupOTP();
+
+  const btn = document.getElementById('send-otp-btn');
+  btn.textContent = '⏳ Yuborilmoqda...';
+  btn.disabled = true;
+
+  try {
+    // Get Telegram chat_id from Telegram WebApp if available
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    const chat_id = tgUser?.id || '';
+
+    const res = await fetch('https://javohirmurodov.app.n8n.cloud/webhook/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: state.phone, chat_id })
+    });
+
+    if (res.ok) {
+      const data = await res.text();
+      state.otpCode = data.trim();
+      document.getElementById('otp-sub').textContent = state.phone + ' ga Telegram kod yuborildi';
+      document.getElementById('auth-phone').style.display = 'none';
+      document.getElementById('auth-otp').style.display = 'block';
+      document.getElementById('otp0').focus();
+      showToast('📨 Telegram da kod keldi!');
+      setupOTP();
+    } else {
+      showToast('❌ Xatolik! Qayta urining');
+    }
+  } catch(e) {
+    // Fallback demo mode
+    state.otpCode = '1234';
+    document.getElementById('otp-sub').textContent = state.phone + ' ga kod yuborildi';
+    document.getElementById('auth-phone').style.display = 'none';
+    document.getElementById('auth-otp').style.display = 'block';
+    document.getElementById('otp0').focus();
+    showToast('📨 Demo rejim: 1 2 3 4');
+    setupOTP();
+  } finally {
+    btn.textContent = 'Kod yuborish →';
+    btn.disabled = false;
+  }
 }
 
 function setupOTP() {
@@ -948,7 +982,7 @@ function setupOTP() {
 
 function verifyOTP() {
   const code = [0,1,2,3].map(i => document.getElementById('otp'+i).value).join('');
-  if (code === '1234') {
+  if (code === state.otpCode) {
     state.userPhone = state.phone;
     state.userName = 'Do\'stim';
     showToast('✅ Muvaffaqiyatli tasdiqlandi!');
@@ -1235,8 +1269,8 @@ async function placeOrder() {
   // Send to n8n webhook
   try {
     // Replace with your actual n8n webhook URL
-    const WEBHOOK_URL = 'YOUR_N8N_WEBHOOK_URL';
-    if (WEBHOOK_URL !== 'YOUR_N8N_WEBHOOK_URL') {
+    const WEBHOOK_URL = 'https://javohirmurodov.app.n8n.cloud/webhook/send-otp';
+    if (WEBHOOK_URL !== 'https://javohirmurodov.app.n8n.cloud/webhook/send-otp') {
       await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
