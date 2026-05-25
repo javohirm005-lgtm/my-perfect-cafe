@@ -571,7 +571,7 @@ async function sendOTP() {
     });
     if (res.ok) {
       var data = await res.json().catch(function() { return {}; });
-      state.otpCode = data.otp || '1234';
+      state.otpCode = (data && data.otp) ? data.otp.toString() : '1234';
       showToast('📨 Telegram botdan kodni oling!');
     } else {
       state.otpCode = '1234';
