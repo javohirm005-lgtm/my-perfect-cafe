@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>My Perfect Cafe</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght=600;700&family=DM+Sans:wght=300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#FAF7F2; --espresso:#2C1A0E; --caramel:#C8854A;
+  --latte:#D4B896; --foam:#F5EDE0; --green:#4CAF7D; --red:#E05555;
+  --radius:20px; --radius-sm:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--espresso);min-height:100vh;overflow-x:hidden}
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* SPLASH */
+#screen-splash{background:linear-gradient(160deg,#2C1A0E 0%,#5C3A1E 60%,#C8854A 100%);align-items:center;justify-content:center;text-align:center;gap:16px}
+.splash-logo{width:90px;height:90px;background:rgba(255,255,255,0.1);border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:44px;border:1px solid rgba(255,255,255,0.2);animation:popIn .6s cubic-bezier(.34,1.56,.64,1)}
+.splash-title{font-family:'Playfair Display',serif;font-size:28px;color:#fff;animation:fadeUp .7s .2s both}
+.splash-sub{color:rgba(255,255,255,0.6);font-size:14px;animation:fadeUp .7s .35s both}
+.splash-loader{width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;margin-top:8px;animation:fadeUp .7s .4s both}
+.splash-loader::after{content:'';display:block;width:40%;height:100%;background:#E8A96A;border-radius:2px;animation:loading 1.4s ease-in-out infinite}
+
+/* APP */
+#screen-app{background:var(--cream)}
+.app-header{background:var(--espresso);padding:16px 20px 20px;color:#fff}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.header-brand{font-family:'Playfair Display',serif;font-size:22px}
+.header-greeting{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:2px}
+.header-tagline{font-size:15px;color:rgba(255,255,255,0.85)}
+.search-wrap{background:var(--cream);padding:14px 20px 0;position:sticky;top:0;z-index:10}
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--foam);border-radius:var(--radius-sm);padding:12px 16px;border:2px solid transparent;transition:border-color .2s}
+.search-bar:focus-within{border-color:var(--caramel)}
+.search-bar input{flex:1;border:none;background:transparent;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--espresso);outline:none}
+.search-bar input::placeholder{color:var(--latte)}
+.search-icon{font-size:18px;color:var(--latte)}
+.search-clear{font-size:16px;color:var(--latte);cursor:pointer;display:none}
+#search-results{display:none;padding:12px 20px;flex-direction:column;gap:10px;flex:1;overflow-y:auto}
+#search-results.show{display:flex}
+.categories-wrap{padding:14px 0 8px;overflow-x:auto;display:flex;gap:10px;padding-left:20px;scrollbar-width:none}
+.categories-wrap::-webkit-scrollbar{display:none}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--foam);border:2px solid transparent;border-radius:20px;padding:10px 14px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.cat-btn.active{background:var(--espresso);border-color:var(--espresso)}
+.cat-icon{font-size:20px}
+.cat-label{font-size:11px;font-weight:600;color:var(--espresso)}
+.cat-btn.active .cat-label{color:#fff}
+.menu-content{flex:1;overflow-y:auto;padding:0 20px 120px;-webkit-overflow-scrolling:touch}
+.section-title{font-family:'Playfair Display',serif;font-size:20px;margin:18px 0 12px;color:var(--espresso)}
+.food-card{background:#fff;border-radius:var(--radius);padding:14px;display:flex;gap:14px;margin-bottom:12px;box-shadow:0 2px 12px rgba(44,26,14,.07);position:relative}
+.food-img{width:80px;height:80px;border-radius:var(--radius-sm);background:var(--foam);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0}
+.food-info{flex:1;min-width:0}
+.food-name{font-weight:600;font-size:15px;margin-bottom:4px;line-height:1.3}
+.food-desc{font-size:12px;color:#8B6B4A;line-height:1.4;margin-bottom:8px}
+.food-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.tag-hot{background:#FFF0E6;color:#E05555}
+.tag-veg{background:#E8F8EF;color:#4CAF7D}
+.tag-new{background:#E8F0FF;color:#4C7DE0}
+.tag-spicy{background:#FFF0E6;color:#FF6B35}
+.food-bottom{display:flex;align-items:center;justify-content:space-between}
+.food-price{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--caramel)}
+.add-btn{width:34px;height:34px;background:var(--espresso);border-radius:50%;border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s;flex-shrink:0}
+.add-btn:active{transform:scale(.88)}
+.qty-control{display:flex;align-items:center;gap:8px}
+.qty-btn{width:30px;height:30px;border-radius:50%;border:2px solid var(--espresso);background:transparent;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--espresso)}
+.qty-btn.minus{border-color:var(--latte);color:var(--latte)}
+.qty-num{font-weight:700;font-size:16px;min-width:20px;text-align:center}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid rgba(44,26,14,.08);padding:10px 20px 20px;display:flex;justify-content:space-around;z-index:100;box-shadow:0 -4px 20px rgba(44,26,14,.08)}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;position:relative;padding:8px 16px;border-radius:20px;transition:background .2s;flex:1;max-width:80px}
+.nav-item.active{background:rgba(200,133,74,.1)}
+.nav-icon{font-size:24px;line-height:1}
+.nav-label{font-size:10px;font-weight:600;color:var(--latte)}
+.nav-item.active .nav-label{color:var(--caramel)}
+.nav-badge{position:absolute;top:4px;right:8px;background:var(--red);color:#fff;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+
+/* CART */
+#screen-cart{background:var(--cream)}
+.page-header{padding:20px;display:flex;align-items:center;gap:14px;background:#fff;border-bottom:1px solid rgba(44,26,14,.06)}
+.back-btn{width:38px;height:38px;background:var(--foam);border-radius:50%;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.page-title{font-family:'Playfair Display',serif;font-size:22px}
+.cart-content{flex:1;overflow-y:auto;padding:16px 20px 200px}
+.cart-item{background:#fff;border-radius:var(--radius);padding:14px;display:flex;gap:14px;align-items:center;margin-bottom:10px;box-shadow:0 2px 8px rgba(44,26,14,.05)}
+.cart-item-emoji{font-size:36px;width:52px;text-align:center}
+.cart-item-info{flex:1}
+.cart-item-name{font-weight:600;font-size:14px;margin-bottom:4px}
+.cart-item-price{color:var(--caramel);font-weight:600;font-size:14px}
+.section-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,26,14,.05)}
+.section-card-title{font-weight:600;font-size:14px;margin-bottom:12px}
+.branch-options{display:flex;flex-direction:column;gap:8px}
+.branch-opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius-sm);border:2px solid var(--foam);cursor:pointer;transition:border-color .2s}
+.branch-opt.selected{border-color:var(--caramel);background:rgba(200,133,74,.05)}
+.branch-opt-icon{font-size:22px}
+.branch-opt-name{font-weight:600;font-size:14px}
+.branch-opt-addr{font-size:12px;color:#8B6B4A}
+.radio-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--latte);margin-left:auto;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .2s}
+.branch-opt.selected .radio-dot{border-color:var(--caramel)}
+.radio-dot::after{content:'';width:10px;height:10px;background:var(--caramel);border-radius:50%;opacity:0;transition:opacity .2s}
+.branch-opt.selected .radio-dot::after{opacity:1}
+.time-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.time-opt{padding:10px 6px;border-radius:var(--radius-sm);border:2px solid var(--foam);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:var(--foam)}
+.time-opt.selected{border-color:var(--caramel);background:rgba(200,133,74,.1);color:var(--caramel)}
+.note-input{width:100%;background:var(--foam);border:2px solid transparent;border-radius:var(--radius-sm);padding:12px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--espresso);outline:none;resize:none;height:80px;transition:border-color .2s}
+.note-input:focus{border-color:var(--caramel)}
+.note-input::placeholder{color:var(--latte)}
+.payment-opts{display:flex;gap:8px}
+.pay-opt{flex:1;padding:12px 8px;border-radius:var(--radius-sm);border:2px solid var(--foam);text-align:center;cursor:pointer;transition:all .2s;background:var(--foam)}
+.pay-opt.selected{border-color:var(--caramel);background:rgba(200,133,74,.08)}
+.pay-icon{font-size:22px;margin-bottom:4px}
+.pay-label{font-size:11px;font-weight:600}
+.cart-summary{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,26,14,.05)}
+.summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px}
+.summary-row:last-child{margin-bottom:0;border-top:1px solid var(--foam);padding-top:10px}
+.summary-total{font-weight:700;font-size:17px}
+.cart-bottom{position:fixed;bottom:0;left:0;right:0;padding:16px 20px 32px;background:#fff;box-shadow:0 -4px 20px rgba(44,26,14,.08)}
+
+/* OTP MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal-card{background:var(--cream);border-radius:32px 32px 0 0;padding:32px 24px 48px;width:100%;max-width:480px;animation:slideUp .4s cubic-bezier(.34,1.2,.64,1)}
+.modal-handle{width:40px;height:4px;background:var(--latte);border-radius:2px;margin:0 auto 24px}
+.modal-emoji{font-size:44px;text-align:center;display:block;margin-bottom:12px}
+.modal-title{font-family:'Playfair Display',serif;font-size:24px;text-align:center;margin-bottom:8px}
+.modal-sub{color:#8B6B4A;font-size:14px;text-align:center;line-height:1.5;margin-bottom:24px}
+.input-group{margin-bottom:14px}
+.input-label{font-size:11px;font-weight:600;color:#8B6B4A;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;display:block}
+.input-wrap{display:flex;align-items:center;background:var(--foam);border-radius:var(--radius-sm);border:2px solid transparent;transition:border-color .2s;overflow:hidden}
+.input-wrap:focus-within{border-color:var(--caramel)}
+.input-prefix{padding:0 12px 0 16px;font-size:16px;font-weight:600;color:var(--caramel);white-space:nowrap}
+.input-wrap input{flex:1;border:none;background:transparent;padding:16px 16px 16px 0;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--espresso);outline:none;width:100%}
+.input-wrap input::placeholder{color:var(--latte)}
+.otp-row{display:flex;gap:10px;justify-content:center;margin:8px 0}
+.otp-box{width:52px;height:60px;background:var(--foam);border:2px solid transparent;border-radius:var(--radius-sm);text-align:center;font-size:24px;font-weight:700;color:var(--espresso);outline:none;transition:border-color .2s,transform .15s}
+.otp-box:focus{border-color:var(--caramel);transform:scale(1.05)}
+.otp-box.filled{border-color:var(--caramel);background:rgba(200,133,74,.08)}
+.btn-main{width:100%;background:linear-gradient(135deg,var(--caramel),#A06030);color:#fff;border:none;border-radius:var(--radius-sm);padding:18px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .2s,transform .15s;margin-top:8px}
+.btn-main:active{opacity:.85;transform:scale(.98)}
+.btn-main:disabled{opacity:.5}
+.resend-text{text-align:center;font-size:13px;color:#8B6B4A;margin-top:14px}
+.resend-link{color:var(--caramel);font-weight:600;cursor:pointer}
+
+/* SUCCESS */
+#screen-success{background:linear-gradient(160deg,#1A3A2A 0%,#2C5A3A 50%,#4CAF7D 100%);align-items:center;justify-content:center;text-align:center;padding:40px;gap:16px}
+.success-icon{width:100px;height:100px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:52px;animation:popIn .6s cubic-bezier(.34,1.56,.64,1);border:2px solid rgba(255,255,255,.2)}
+.success-title{font-family:'Playfair Display',serif;font-size:28px;color:#fff;animation:fadeUp .5s .2s both}
+.success-sub{color:rgba(255,255,255,.7);font-size:15px;line-height:1.5;animation:fadeUp .5s .35s both}
+.order-id-badge{background:rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:12px 24px;color:#fff;font-size:20px;font-weight:700;letter-spacing:3px;animation:fadeUp .5s .45s both}
+.success-time{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:var(--radius-sm);padding:12px 20px;color:rgba(255,255,255,.9);font-size:14px;animation:fadeUp .5s .55s both}
+
+/* PROFILE */
+#screen-profile{background:var(--cream);padding-bottom:100px}
+.profile-header{background:var(--espresso);padding:40px 24px 32px;color:#fff;text-align:center}
+.profile-avatar{width:72px;height:72px;background:var(--caramel);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 12px;border:3px solid rgba(255,255,255,.2)}
+.profile-name{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:4px}
+.profile-phone{color:rgba(255,255,255,.6);font-size:14px}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.1);border-radius:var(--radius-sm);overflow:hidden;margin-top:20px}
+.stat-box{padding:14px 8px;text-align:center;background:rgba(255,255,255,.05)}
+.stat-num{font-family:'Playfair Display',serif;font-size:20px}
+.stat-label{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px}
+.menu-list{padding:16px 20px}
+.menu-item{background:#fff;border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;cursor:pointer;box-shadow:0 2px 8px rgba(44,26,14,.05)}
+.menu-item-icon{width:42px;height:42px;background:var(--foam);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.menu-item-text{flex:1}
+.menu-item-title{font-weight:600;font-size:15px}
+.menu-item-sub{font-size:12px;color:#8B6B4A;margin-top:2px}
+.menu-item-arrow{color:var(--latte);font-size:18px}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--espresso);color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:500;z-index:1000;opacity:0;transition:all .3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state-icon{font-size:64px;margin-bottom:16px}
+.empty-state-title{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:8px}
+.empty-state-sub{color:#8B6B4A;font-size:14px}
+
+@keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fadeUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes loading{0%{transform:translateX(-100%)}50%{transform:translateX(200%)}100%{transform:translateX(-100%)}}
+</style>
+</head>
+<body>
+
+<div id="screen-splash" class="screen active">
+  <div class="splash-logo">☕</div>
+  <div class="splash-title">My Perfect Cafe</div>
+  <div class="splash-sub">Mazali taomlar, iliq muhit</div>
+  <div class="splash-loader"></div>
+</div>
+
+<div id="screen-app" class="screen">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-brand">☕ My Perfect Cafe</div>
+      <div style="cursor:pointer;font-size:22px" onclick="switchNav('profile')">👤</div>
+    </div>
+    <div class="header-greeting">Xush kelibsiz!</div>
+    <div class="header-tagline">Bugun nima yeysiz? 😋</div>
+  </div>
+  <div class="search-wrap">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Taom qidiring... (achiqqina, shirin...)" oninput="handleSearch(this.value)">
+      <span class="search-clear" id="search-clear" onclick="clearSearch()">✕</span>
+    </div>
+  </div>
+  <div id="search-results"></div>
+  <div id="normal-menu">
+    <div class="categories-wrap" id="categories-wrap"></div>
+    <div class="menu-content" id="menu-content"></div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-menu" onclick="switchNav('menu')">
+      <span class="nav-icon">🍽️</span><span class="nav-label">Menyu</span>
+    </div>
+    <div class="nav-item" id="nav-cart" onclick="switchNav('cart')">
+      <span class="nav-icon">🛒</span><span class="nav-label">Savatcha</span>
+      <span class="nav-badge" id="cart-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" id="nav-orders" onclick="showToast('⏳ Tez orada!')">
+      <span class="nav-icon">📋</span><span class="nav-label">Tarix</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="switchNav('profile')">
+      <span class="nav-icon">👤</span><span class="nav-label">Profil</span>
+    </div>
+  </nav>
+</div>
+
+<div id="screen-cart" class="screen">
+  <div class="page-header">
+    <button class="back-btn" onclick="showScreen('app')">←</button>
+    <span class="page-title">Savatcha</span>
+  </div>
+  <div class="cart-content" id="cart-content"></div>
+  <div class="cart-bottom">
+    <button class="btn-main" id="checkout-btn" onclick="startCheckout()">Buyurtma berish</button>
+  </div>
+</div>
+
+<div id="screen-success" class="screen">
+  <div class="success-icon">✅</div>
+  <div class="success-title">Buyurtma qabul qilindi!</div>
+  <div class="success-sub">Tez orada tayyorlab beramiz.<br>Oshpaz qo'lda ishlaydi 👨‍🍳</div>
+  <div class="order-id-badge" id="success-order-id">#0000</div>
+  <div class="success-time">⏱️ Taxminiy vaqt: <strong id="success-time-val">25-30 daqiqa</strong></div>
+  <button class="btn-main" style="background:rgba(255,255,255,.2);margin-top:8px" onclick="backToMenu()">Menyuga qaytish</button>
+</div>
+
+<div id="screen-profile" class="screen">
+  <div class="profile-header">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-name" id="profile-name">Mehmon</div>
+    <div class="profile-phone" id="profile-phone">Hali kirilmagan</div>
+    <div class="profile-stats">
+      <div class="stat-box"><div class="stat-num" id="stat-orders">0</div><div class="stat-label">Buyurtma</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-spent">0k</div><div class="stat-label">So'm</div></div>
+      <div class="stat-box"><div class="stat-num">⭐</div><div class="stat-label">Doimiy</div></div>
+    </div>
+  </div>
+  <div style="padding:16px 20px 8px"><button class="back-btn" onclick="showScreen('app')">← Orqaga</button></div>
+  <div class="menu-list">
+    <div class="menu-item" onclick="showToast('📦 Tez orada!')"><div class="menu-item-icon">📦</div><div class="menu-item-text"><div class="menu-item-title">Buyurtmalarim</div><div class="menu-item-sub">Barcha buyurtmalar tarixi</div></div><span class="menu-item-arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('❤️ Tez orada!')"><div class="menu-item-icon">❤️</div><div class="menu-item-text"><div class="menu-item-title">Sevimlilar</div><div class="menu-item-sub">Saqlangan taomlar</div></div><span class="menu-item-arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('🎁 Tez orada!')"><div class="menu-item-icon">🎁</div><div class="menu-item-text"><div class="menu-item-title">Bonuslar</div><div class="menu-item-sub">0 ball</div></div><span class="menu-item-arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('📞 +998 71 123 45 67')"><div class="menu-item-icon">📞</div><div class="menu-item-text"><div class="menu-item-title">Aloqa</div><div class="menu-item-sub">Qo'llab-quvvatlash</div></div><span class="menu-item-arrow">›</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-phone">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <span class="modal-emoji">📝</span>
+    <h2 class="modal-title">Buyurtma uchun ma'lumot</h2>
+    <p class="modal-sub">Ismingiz va telefon raqamingizni kiriting</p>
+    <div class="input-group">
+      <label class="input-label">Ismingiz</label>
+      <div class="input-wrap">
+        <span class="input-prefix">👤</span>
+        <input type="text" id="customer-name-input" placeholder="Ismingizni kiriting" maxlength="50">
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Telefon raqam</label>
+      <div class="input-wrap">
+        <span class="input-prefix">🇺🇿 +998</span>
+        <input type="tel" id="phone-input" placeholder="90 123 45 67" maxlength="9" inputmode="numeric">
+      </div>
+    </div>
+    <button class="btn-main" id="send-otp-btn" onclick="sendOTP()">Kod yuborish →</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-otp">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <span class="modal-emoji">🔐</span>
+    <h2 class="modal-title">Tasdiqlash</h2>
+    <p class="modal-sub" id="otp-sub">Telegram botdan 4 xonali kod keladi</p>
+    <div class="input-group">
+      <label class="input-label">Kodni kiriting</label>
+      <div class="otp-row">
+        <input type="tel" class="otp-box" maxlength="1" inputmode="numeric" id="otp0">
+        <input type="tel" class="otp-box" maxlength="1" inputmode="numeric" id="otp1">
+        <input type="tel" class="otp-box" maxlength="1" inputmode="numeric" id="otp2">
+        <input type="tel" class="otp-box" maxlength="1" inputmode="numeric" id="otp3">
+      </div>
+    </div>
+    <button class="btn-main" id="verify-btn" onclick="verifyOTP()" disabled>Tasdiqlash →</button>
+    <p class="resend-text">Kod kelmadimi? <span class="resend-link" onclick="backToPhone()">Qayta yuborish</span></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== CONFIGURATION ==========
+var WEBHOOK_OTP = 'https://javohirmurodov.app.n8n.cloud/webhook/send-otp';
+var WEBHOOK_ORDER = 'https://javohirmurodov.app.n8n.cloud/webhook/order';
+
+// ========== DATA ==========
+var MENU_DATA = {
+  categories:[
+    {id:'all',icon:'🍽️',label:'Barchasi'},
+    {id:'hot',icon:'🍲',label:'Issiq taomlar'},
+    {id:'salad',icon:'🥗',label:'Salat'},
+    {id:'soup',icon:'🍜',label:"Sho'rva"},
+    {id:'grill',icon:'🍖',label:'Grill'},
+    {id:'pizza',icon:'🍕',label:'Pizza'},
+    {id:'drinks',icon:'🥤',label:'Ichimlik'},
+    {id:'dessert',icon:'🍰',label:'Desert'},
+    {id:'snack',icon:'🥪',label:'Gazak'}
+  ],
+  items:[
+    {id:1,cat:'hot',emoji:'🍛',name:'Osh (Palov)',desc:"An'anaviy o'zbek oshi",price:35000,tags:['hot'],kw:'palov osh issiq guruch'},
+    {id:2,cat:'hot',emoji:'🥘',name:'Dimlama',desc:"Sabzavotlar va mol go'shti",price:42000,tags:['hot','new'],kw:'dimlama issiq sabzavot'},
+    {id:3,cat:'hot',emoji:'🍝',name:"Lag'mon",desc:"Qo'lda tortilgan xamir, achiqqina",price:28000,tags:['spicy'],kw:'lagmon achiq achiqqina'},
+    {id:4,cat:'hot',emoji:'🥗',name:'Manti',desc:"Bug'da pishirilgan, qatiq bilan",price:32000,tags:['hot'],kw:'manti bug issiq'},
+    {id:5,cat:'salad',emoji:'🥗',name:'Cezar Salati',desc:'Tovuq, pomidor, Cezar sousi',price:25000,tags:['new'],kw:'salat cezar tovuq'},
+    {id:6,cat:'salad',emoji:'🥙',name:'Achichuk',desc:"Pomidor, piyoz, ko'k",price:15000,tags:['veg'],kw:'salat achichuk pomidor shirin'},
+    {id:7,cat:'salad',emoji:'🥬',name:'Gretsiya Salati',desc:'Feta pishloq, zaytun',price:22000,tags:['veg'],kw:'salat gretsiya pishloq'},
+    {id:8,cat:'soup',emoji:'🍲',name:'Mastava',desc:"Guruchli sho'rva",price:22000,tags:['hot'],kw:'shorva mastava issiq'},
+    {id:9,cat:'soup',emoji:'🍜',name:'Shurpa',desc:"Qo'zi go'shti sho'rvasi",price:30000,tags:['hot'],kw:'shorva shurpa issiq'},
+    {id:10,cat:'grill',emoji:'🍢',name:'Kabob (6 dona)',desc:"Ko'mir ustida pishirilgan",price:38000,tags:['hot','spicy'],kw:'kabob grill achiq'},
+    {id:11,cat:'grill',emoji:'🍗',name:'Tovuq Grill',desc:"Butun tovuq, o'tlar bilan",price:55000,tags:['new'],kw:'tovuq grill issiq'},
+    {id:12,cat:'pizza',emoji:'🍕',name:'Margherita',desc:'Tomat sousi, mozzarella',price:45000,tags:['veg'],kw:'pizza margherita pishloq'},
+    {id:13,cat:'pizza',emoji:'🍕',name:'Pepperoni',desc:'Pepperoni, achiqqina sous',price:55000,tags:['spicy'],kw:'pizza pepperoni achiq'},
+    {id:14,cat:'drinks',emoji:'☕',name:'Cappuccino',desc:"Italyan kofe, ko'pik",price:18000,tags:[],kw:'kofe cappuccino shirin issiq'},
+    {id:15,cat:'drinks',emoji:'🧋',name:'Buble Tea',desc:'Sutli choy, tapioka',price:22000,tags:['new'],kw:'buble tea shirin sovuq'},
+    {id:16,cat:'drinks',emoji:'🥤',name:'Fresh Apelsin',desc:'Yangi siqilgan sharbat',price:20000,tags:['veg'],kw:'fresh sharbat shirin sovuq'},
+    {id:17,cat:'dessert',emoji:'🎂',name:'Tiramisu',desc:'Italyan klasik deseri',price:28000,tags:['new'],kw:'desert tiramisu shirin'},
+    {id:18,cat:'dessert',emoji:'🍮',name:'Creme Brulee',desc:"Frantsuz kremi, karamel",price:25000,tags:[],kw:'desert creme shirin'},
+    {id:19,cat:'snack',emoji:'🥐',name:'Kruassan',desc:"Yangi pishirilgan, sariyog'li",price:12000,tags:['new'],kw:'gazak kruassan non'},
+    {id:20,cat:'snack',emoji:'🥙',name:'Lavash Rol',desc:'Tovuq, sabzavot, sous',price:22000,tags:[],kw:'gazak lavash rol'}
+  ]
+};
+
+var BRANCHES = [
+  {id:1,icon:'🏪',name:'Chilonzor filiali',addr:"Chilonzor ko'chasi, 15"},
+  {id:2,icon:'🏬',name:'Yunusobod filiali',addr:"Amir Temur shox ko'chasi, 108"},
+  {id:3,icon:'🏢',name:"Mirzo Ulug'bek filiali",addr:"Mirzo Ulug'bek, 55"}
+];
+
+// ========== STATE ==========
+var state = {
+  cart: {}, 
+  currentCat: 'all',
+  selectedBranch: null,
+  selectedTime: null,
+  selectedPayment: 'click',
+  note: '',
+  phone: '',
+  customerName: '',
+  otpCode: '',
+  verified: false,
+  orderCount: 0,
+  totalSpent: 0,
+  tgId: ''
+};
+
+// ========== HELPERS ==========
+function fmtPrice(p) { return p.toLocaleString('uz-UZ') + ' so\'m'; }
+function getTotal() {
+  return Object.values(state.cart).reduce(function(s, v) { return s + v.price * v.quantity; }, 0);
+}
+function getCartCount() {
+  return Object.values(state.cart).reduce(function(s, v) { return s + v.quantity; }, 0);
+}
+
+// ========== CART ACTIONS ==========
+function addToCart(id) {
+  var item = MENU_DATA.items.find(function(i) { return i.id === id; });
+  if (!item) return;
+  
+  if (state.cart[id]) {
+    state.cart[id].quantity++;
+  } else {
+    state.cart[id] = {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      emoji: item.emoji,
+      quantity: 1
+    };
+  }
+  updateBadge();
+  renderMenu(state.currentCat);
+  showToast('✅ ' + item.name + ' qo\'shildi!');
+}
+
+function changeQty(id, delta) {
+  if (!state.cart[id]) return;
+  var newQty = state.cart[id].quantity + delta;
+  if (newQty <= 0) {
+    delete state.cart[id];
+  } else {
+    state.cart[id].quantity = newQty;
+  }
+  updateBadge();
+  renderMenu(state.currentCat);
+  var activeScreen = document.querySelector('.screen.active').id;
+  if (activeScreen === 'screen-cart') renderCart();
+}
+
+function updateBadge() {
+  var n = getCartCount();
+  var b = document.getElementById('cart-badge');
+  b.textContent = n;
+  b.style.display = n > 0 ? 'flex' : 'none';
+}
+
+// ========== MENU RENDERING ==========
+function renderCategories() {
+  document.getElementById('categories-wrap').innerHTML = MENU_DATA.categories.map(function(c) {
+    return '<div class="cat-btn ' + (c.id === 'all' ? 'active' : '') + '" id="cat-' + c.id + '" onclick="selectCat(\'' + c.id + '\')"><span class="cat-icon">' + c.icon + '</span><span class="cat-label">' + c.label + '</span></div>';
+  }).join('');
+}
+
+function selectCat(id) {
+  state.currentCat = id;
+  document.querySelectorAll('.cat-btn').forEach(function(b) { b.classList.remove('active'); });
+  var el = document.getElementById('cat-' + id);
+  if (el) el.classList.add('active');
+  renderMenu(id);
+}
+
+function foodCard(item) {
+  var cartItem = state.cart[item.id];
+  var qty = cartItem ? cartItem.quantity : 0;
+  var tags = item.tags.map(function(t) {
+    var m = { hot: '🔥 Issiq', veg: '🥦 Veg', new: '✨ Yangi', spicy: '🌶️ Achiqqina' };
+    return '<span class="tag tag-' + t + '">' + (m[t] || t) + '</span>';
+  }).join('');
+  
+  var ctrl = qty === 0
+    ? '<button class="add-btn" onclick="addToCart(' + item.id + ')">+</button>'
+    : '<div class="qty-control"><button class="qty-btn minus" onclick="changeQty(' + item.id + ',-1)">−</button><span class="qty-num">' + qty + '</span><button class="qty-btn" onclick="changeQty(' + item.id + ',1)">+</button></div>';
+  
+  return '<div class="food-card"><div class="food-img">' + item.emoji + '</div><div class="food-info"><div class="food-name">' + item.name + '</div><div class="food-desc">' + item.desc + '</div><div class="food-tags">' + tags + '</div><div class="food-bottom"><div class="food-price">' + fmtPrice(item.price) + '</div>' + ctrl + '</div></div></div>';
+}
+
+function renderMenu(catId) {
+  var content = document.getElementById('menu-content');
+  if (catId === 'all') {
+    var html = '';
+    MENU_DATA.categories.slice(1).forEach(function(cat) {
+      var items = MENU_DATA.items.filter(function(i) { return i.cat === cat.id; });
+      if (items.length) {
+        html += '<div class="section-title">' + cat.icon + ' ' + cat.label + '</div>' + items.map(foodCard).join('');
+      }
+    });
+    content.innerHTML = html;
+  } else {
+    content.innerHTML = MENU_DATA.items.filter(function(i) { return i.cat === catId; }).map(foodCard).join('');
+  }
+}
+
+// ========== CART SCREEN ==========
+function renderCart() {
+  var itemsArr = Object.values(state.cart);
+  var content = document.getElementById('cart-content');
+  var btn = document.getElementById('checkout-btn');
+  
+  if (!itemsArr.length) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div class="empty-state-title">Savatcha bo\'sh</div><div class="empty-state-sub">Menyudan taom tanlang</div></div>';
+    btn.disabled = true;
+    btn.textContent = 'Buyurtma berish';
+    return;
+  }
+  
+  btn.disabled = false;
+  
+  var itemsH = itemsArr.map(function(v) {
+    return '<div class="cart-item"><div class="cart-item-emoji">' + v.emoji + '</div><div class="cart-item-info"><div class="cart-item-name">' + v.name + '</div><div class="cart-item-price">' + fmtPrice(v.price * v.quantity) + '</div></div><div class="qty-control"><button class="qty-btn minus" onclick="changeQty(' + v.id + ',-1);renderCart()">−</button><span class="qty-num">' + v.quantity + '</span><button class="qty-btn" onclick="changeQty(' + v.id + ',1);renderCart()">+</button></div></div>';
+  }).join('');
+  
+  var branchH = BRANCHES.map(function(b) {
+    return '<div class="branch-opt ' + (state.selectedBranch === b.id ? 'selected' : '') + '" onclick="selectBranch(' + b.id + ')"><span class="branch-opt-icon">' + b.icon + '</span><div><div class="branch-opt-name">' + b.name + '</div><div class="branch-opt-addr">' + b.addr + '</div></div><div class="radio-dot"></div></div>';
+  }).join('');
+  
+  var times = ['10 daqiqa', '20 daqiqa', '30 daqiqa', '45 daqiqa', '1 soat', 'Imkon qadar'];
+  var timeH = times.map(function(t) {
+    return '<div class="time-opt ' + (state.selectedTime === t ? 'selected' : '') + '" onclick="selectTime(\'' + t + '\')">' + t + '</div>';
+  }).join('');
+  
+  var pays = [{ k: 'click', i: '⚡', l: 'Click' }, { k: 'payme', i: '💜', l: 'Payme' }, { k: 'card', i: '💳', l: 'Karta' }];
+  var payH = pays.map(function(p) {
+    return '<div class="pay-opt ' + (state.selectedPayment === p.k ? 'selected' : '') + '" onclick="selectPayment(\'' + p.k + '\')"><div class="pay-icon">' + p.i + '</div><div class="pay-label">' + p.l + '</div></div>';
+  }).join('');
+  
+  var total = getTotal();
+  var itemCount = getCartCount();
+  
+  content.innerHTML = itemsH +
+    '<div class="section-card"><div class="section-card-title">📍 Filialni tanlang</div><div class="branch-options">' + branchH + '</div></div>' +
+    '<div class="section-card"><div class="section-card-title">⏰ Tayyorlab qo\'yish vaqti</div><div class="time-options">' + timeH + '</div></div>' +
+    '<div class="section-card"><div class="section-card-title">💬 Izoh (ixtiyoriy)</div><textarea class="note-input" id="cart-note" placeholder="Masalan: sabzisiz, ko\'proq sous..." oninput="state.note=this.value">' + state.note + '</textarea></div>' +
+    '<div class="section-card"><div class="section-card-title">💳 To\'lov usuli</div><div class="payment-opts">' + payH + '</div></div>' +
+    '<div class="cart-summary"><div class="summary-row"><span>Taomlar (' + itemCount + ' ta)</span><span>' + fmtPrice(total) + '</span></div><div class="summary-row"><span>Yetkazib berish</span><span style="color:var(--green)">Bepul</span></div><div class="summary-row"><span class="summary-total">Jami</span><span class="summary-total" style="color:var(--caramel)">' + fmtPrice(total) + '</span></div></div>';
+  
+  btn.textContent = 'Buyurtma berish — ' + fmtPrice(total);
+}
+
+function selectBranch(id) {
+  state.selectedBranch = id;
+  renderCart();
+}
+
+function selectTime(time) {
+  state.selectedTime = time;
+  renderCart();
+}
+
+// ========== CHECKOUT & ORDER ==========
+function startCheckout() {
+  if (getCartCount() === 0) {
+    showToast('❌ Savatcha bo\'sh');
+    return;
+  }
+  if (!state.selectedBranch) { showToast('❗ Filialni tanlang'); return; }
+  if (!state.selectedTime) { showToast('❗ Vaqtni tanlang'); return; }
+  
+  document.getElementById('modal-phone').classList.add('show');
+  document.getElementById('phone-input').value = '';
+  document.getElementById('customer-name-input').value = state.customerName || '';
+  setTimeout(function() { document.getElementById('customer-name-input').focus(); }, 300);
+}
+
+async function sendOTP() {
+  var rawPhone = document.getElementById('phone-input').value.replace(/\D/g, '');
+  var customerName = document.getElementById('customer-name-input').value.trim();
+  
+  if (!customerName) { showToast('❌ Ismingizni kiriting'); return; }
+  if (rawPhone.length < 9) { showToast('❌ Raqamni to\'liq kiriting'); return; }
+  
+  state.customerName = customerName;
+  state.phone = '+998' + rawPhone;
+  
+  var btn = document.getElementById('send-otp-btn');
+  btn.textContent = '⏳ Yuborilmoqda...';
+  btn.disabled = true;
+  
+  try {
+    var res = await fetch(WEBHOOK_OTP, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: state.phone, name: state.customerName, chat_id: '7406094319' })
+    });
+    if (res.ok) {
+      var data = await res.json().catch(function() { return {}; });
+      state.otpCode = data.otp || '1234';
+      showToast('📨 Telegram botdan kodni oling!');
+    } else {
+      state.otpCode = '1234';
+      showToast('📨 Demo rejim: 1 2 3 4');
+    }
+  } catch (e) {
+    state.otpCode = '1234';
+    showToast('📨 Demo rejim: 1 2 3 4');
+  }
+  
+  btn.textContent = 'Kod yuborish →';
+  btn.disabled = false;
+  
+  document.getElementById('otp-sub').textContent = state.phone + ' — Telegramdan kod oling';
+  document.getElementById('modal-phone').classList.remove('show');
+  document.getElementById('modal-otp').classList.add('show');
+  setupOTP();
+}
+
+function setupOTP() {
+  var boxes = document.querySelectorAll('.otp-box');
+  boxes.forEach(function(box, i) {
+    box.value = '';
+    box.classList.remove('filled');
+    box.oninput = function(e) {
+      var v = e.target.value.replace(/\D/g, '');
+      e.target.value = v;
+      if (v) {
+        e.target.classList.add('filled');
+        if (i < 3) boxes[i + 1].focus();
+      } else {
+        e.target.classList.remove('filled');
+      }
+      var code = Array.from(boxes).map(function(b) { return b.value; }).join('');
+      document.getElementById('verify-btn').disabled = code.length < 4;
+    };
+    box.onkeydown = function(e) {
+      if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+    };
+  });
+}
+
+function verifyOTP() {
+  var code = [0, 1, 2, 3].map(function(i) { return document.getElementById('otp' + i).value; }).join('');
+  if (code === state.otpCode) {
+    state.verified = true;
+    document.getElementById('modal-otp').classList.remove('show');
+    showToast('✅ Tasdiqlandi!');
+    placeOrder();
+  } else {
+    showToast('❌ Noto\'g\'ri kod!');
+    document.querySelectorAll('.otp-box').forEach(function(b) { b.value = ''; b.classList.remove('filled'); });
+    document.getElementById('otp0').focus();
+    document.getElementById('verify-btn').disabled = true;
+  }
+}
+
+function backToPhone() {
+  document.getElementById('modal-otp').classList.remove('show');
+  document.getElementById('modal-phone').classList.add('show');
+}
+
+async function placeOrder() {
+  var branch = BRANCHES.find(function(b) { return b.id === state.selectedBranch; });
+  var itemsArray = Object.values(state.cart).map(function(v) {
+    return {
+      id: v.id,
+      name: v.name,
+      quantity: v.quantity,
+      price: v.price,
+      total: v.price * v.quantity
+    };
+  });
+  
+  var orderPayload = {
+    customer: {
+      name: state.customerName,
+      phone: state.phone,
+      telegramId: state.tgId
+    },
+    branch: branch ? branch.name : '',
+    preparationTime: state.selectedTime,
+    paymentMethod: state.selectedPayment,
+    note: state.note,
+    items: itemsArray,
+    total: getTotal(),
+    createdAt: new Date().toISOString()
+  };
+  
+  var orderId = '#' + String(Math.floor(Math.random() * 9000) + 1000);
+  
+  try {
+    await fetch(WEBHOOK_ORDER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderPayload)
+    });
+  } catch (e) {
+    console.warn('Webhook error:', e);
+  }
+  
+  state.orderCount++;
+  state.totalSpent += getTotal();
+  
+  state.cart = {};
+  state.selectedBranch = null;
+  state.selectedTime = null;
+  state.note = '';
+  state.verified = false; 
+  state.otpCode = '';
+  
+  updateBadge();
+  
+  document.getElementById('success-order-id').textContent = orderId;
+  document.getElementById('success-time-val').textContent = state.selectedTime || '25-30 daqiqa';
+  showScreen('success');
+}
+
+function backToMenu() {
+  showScreen('app');
+  renderMenu(state.currentCat);
+}
+
+// ========== UI NAVIGATION ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + id).classList.add('active');
+  if (id === 'cart') renderCart();
+  if (id === 'profile') updateProfile();
+  if (id === 'app') {
+    renderMenu(state.currentCat);
+  }
+}
+
+function switchNav(tab) {
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var el = document.getElementById('nav-' + tab);
+  if (el) el.classList.add('active');
+  if (tab === 'cart') showScreen('cart');
+  else if (tab === 'profile') showScreen('profile');
+  else showScreen('app');
+}
+
+// ========== SEARCH ==========
+function handleSearch(q) {
+  var clearBtn = document.getElementById('search-clear');
+  var res = document.getElementById('search-results');
+  var norm = document.getElementById('normal-menu');
+  if (!q.trim()) { clearSearch(); return; }
+  clearBtn.style.display = 'block';
+  res.classList.add('show');
+  norm.style.display = 'none';
+  var ql = q.toLowerCase();
+  var results = MENU_DATA.items.filter(function(i) {
+    return i.name.toLowerCase().includes(ql) || i.desc.toLowerCase().includes(ql) || (i.kw && i.kw.toLowerCase().includes(ql));
+  });
+  res.innerHTML = results.length ? results.map(foodCard).join('') : '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Topilmadi</div><div class="empty-state-sub">"' + q + '" bo\'yicha natija yo\'q</div></div>';
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  var res = document.getElementById('search-results');
+  res.classList.remove('show');
+  res.innerHTML = '';
+  document.getElementById('normal-menu').style.display = 'block';
+}
+
+// ========== PROFILE ==========
+function updateProfile() {
+  document.getElementById('profile-name').textContent = state.customerName || (state.phone || 'Mehmon');
+  document.getElementById('profile-phone').textContent = state.phone || 'Hali kirilmagan';
+  document.getElementById('stat-orders').textContent = state.orderCount;
+  document.getElementById('stat-spent').textContent = Math.round(state.totalSpent / 1000) + 'k';
+}
+
+// ========== TOAST ==========
+var toastT;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ========== INIT ==========
+window.addEventListener('load', function() {
+  if (window.Telegram && Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+    var u = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+    if (u) state.tgId = String(u.id || '');
+  }
+  setTimeout(function() {
+    showScreen('app');
+    renderCategories();
+    renderMenu('all');
+  }, 2000);
+});
+
+document.getElementById('phone-input').addEventListener('input', function() {
+  var v = this.value.replace(/\D/g, '');
+  if (v.length > 9) v = v.slice(0, 9);
+  this.value = v;
+});
+</script>
+</body>
+</html>
