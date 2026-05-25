@@ -563,24 +563,31 @@ async function sendOTP() {
   btn.textContent = '⏳ Yuborilmoqda...';
   btn.disabled = true;
   
-  try {
+try {
     var res = await fetch(WEBHOOK_OTP, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: state.phone, name: state.customerName, chat_id: '7406094319' })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: state.phone, name: state.customerName, chat_id: "7406094319" })
     });
+    
     if (res.ok) {
-      var data = await res.json().catch(function() { return {}; });
-      state.otpCode = (data && data.otp) ? data.otp.toString() : '1234';
-      showToast('📨 Telegram botdan kodni oling!');
+        var data = await res.json().catch(function() { return {}; });
+        if (data && data.otp) {
+            state.otpCode = data.otp.toString();
+            showToast('💬 Telegram botdan kodni oling!');
+        } else {
+            showToast('❌ Serverdan kod kelmadi. Qayta urining.');
+            state.otpCode = 'NOT_SET_' + Math.random();
+        }
     } else {
-      state.otpCode = '1234';
-      showToast('📨 Demo rejim: 1 2 3 4');
+        showToast('❌ Tarmoqda xatolik! Kod yuborilmadi.');
+        state.otpCode = 'NOT_SET_' + Math.random();
     }
-  } catch (e) {
-    state.otpCode = '1234';
-    showToast('📨 Demo rejim: 1 2 3 4');
-  }
+} catch (e) {
+    console.error(e);
+    showToast('❌ Ulanishda xatolik yuz berdi!');
+    state.otpCode = 'NOT_SET_ERROR';
+}
   
   btn.textContent = 'Kod yuborish →';
   btn.disabled = false;
