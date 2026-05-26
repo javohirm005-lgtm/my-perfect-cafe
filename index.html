@@ -1,4 +1,4 @@
-```html
+
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -562,359 +562,58 @@ function renderCart() {
   const total = getTotal();
   const itemCount = getCartCount();
   
-  content.innerHTML = itemsH +
-    `<div class="section-card"><div class="section-card-title">📍 Filialni tanlang</div><div class="branch-options">${branchH}</div></div>
-     <div class="section-card"><div class="section-card-title">⏰ Tayyorlab qo'yish vaqti</div><div class="time-options">${timeH}</div></div>
-     <div class="section-card"><div class="section-card-title">💬 Izoh (ixtiyoriy)</div><textarea class="note-input" id="cart-note" placeholder="Masalan: sabzisiz, ko'proq sous..." oninput="state.note=this.value">${state.note}</textarea></div>
-     <div class="section-card"><div class="section-card-title">💳 To'lov usuli</div><div class="payment-opts">${payH}</div></div>
-     <div class="cart-summary">
-       <div class="summary-row"><span>Taomlar (${itemCount} ta)</span><span>${fmtPrice(total)}</span></div>
-       <div class="summary-row"><span>Yetkazib berish</span><span style="color:var(--green)">Bepul</span></div>
-       <div class="summary-row"><span class="summary-total">Jami</span><span class="summary-total" style="color:var(--caramel)">${fmtPrice(total)}</span></div>
-     </div>`;
-  
-  btn.textContent = `Buyurtma berish — ${fmtPrice(total)}`;
-}
-
-function selectBranch(id) { state.selectedBranch = id; renderCart(); }
-function selectTime(time) { state.selectedTime = time; renderCart(); }
-function selectPayment(payment) { state.selectedPayment = payment; renderCart(); }
-
-// ========== SECURE OTP SYSTEM (NO FALLBACKS) ==========
-function startCheckout() {
-  if (getCartCount() === 0) { showToast('❌ Savatcha bo\'sh'); return; }
-  if (!state.selectedBranch) { showToast('❗ Filialni tanlang'); return; }
-  if (!state.selectedTime) { showToast('❗ Vaqtni tanlang'); return; }
-  
-  const VERIFICATION_VALIDITY = 30 * 60 * 1000;
-  const isVerificationValid = state.verified && state.verificationTimestamp && 
-                              (Date.now() - state.verificationTimestamp) < VERIFICATION_VALIDITY;
-  
-  if (isVerificationValid && state.customerName && state.phone) {
-    placeOrder();
-    return;
-  }
-  
-  state.verified = false;
-  state.verificationTimestamp = null;
-  
-  pendingOTP = { isPending: false, expectedCode: null, phone: null, customerName: null, timestamp: null };
-  
-  document.getElementById('customer-name-input').value = state.customerName || '';
-  document.getElementById('phone-input').value = state.phone ? state.phone.replace('+998', '') : '';
-  document.getElementById('modal-phone').classList.add('show');
-  setTimeout(() => document.getElementById('customer-name-input').focus(), 300);
-}
+// ========== SECURE OTP SYSTEM ==========
+const WEBHOOK_OTP = 'https://javohirmurodov.app.n8n.cloud/webhook/send-otp';
 
 async function sendOTP() {
-  const rawPhone = document.getElementById('phone-input').value.replace(/\D/g, '');
-  const customerName = document.getElementById('customer-name-input').value.trim();
-  
-  if (!customerName) { showToast('❌ Ismingizni kiriting'); return; }
-  if (rawPhone.length < 9) { showToast('❌ Raqamni to\'liq kiriting'); return; }
-  
-  const fullPhone = '+998' + rawPhone;
-  const btn = document.getElementById('send-otp-btn');
-  const originalText = btn.textContent;
-  
-  btn.textContent = '⏳ Yuborilmoqda...';
-  btn.disabled = true;
-  
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    const res = await fetch(WEBHOOK_OTP, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: fullPhone, name: customerName, chat_id: '7406094319', timestamp: new Date().toISOString() }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
-    
-    const data = await res.json();
-    
-    // Strict OTP validation - NO FALLBACKS
-    if (!data || typeof data !== 'object') throw new Error('Invalid response format');
-    
-    const receivedOtp = data.otp;
-    if (!receivedOtp || typeof receivedOtp !== 'string' || receivedOtp.length !== 4 || !/^\d{4}$/.test(receivedOtp)) {
-      throw new Error('Invalid OTP format from server');
-    }
-    
-    // Store ONLY valid OTP from server
-    pendingOTP = {
-      isPending: true,
-      expectedCode: receivedOtp,
-      phone: fullPhone,
-      customerName: customerName,
-      timestamp: Date.now()
-    };
-    
-    state.customerName = customerName;
-    state.phone = fullPhone;
-    
-    showToast('📨 Kod Telegram botga yuborildi!');
-    document.getElementById('modal-phone').classList.remove('show');
-    document.getElementById('modal-otp').classList.add('show');
-    setupOTPInputs();
-    
-  } catch (error) {
-    console.error('OTP send error:', error);
-    // CRITICAL: NEVER set fallback OTP
-    pendingOTP = { isPending: false, expectedCode: null, phone: null, customerName: null, timestamp: null };
-    
-    if (error.name === 'AbortError') {
-      showToast('❌ Ulanish vaqti tugadi. Qaytadan urinib ko\'ring');
-    } else {
-      showToast('❌ Kod yuborilmadi. Internet tekshiring');
-    }
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
-}
+    const phoneInput = document.getElementById('phone-input').value;
+    const nameInput = document.getElementById('customer-name-input').value;
+    const btn = document.getElementById('send-otp-btn');
 
-function setupOTPInputs() {
-  const boxes = document.querySelectorAll('.otp-box');
-  const verifyBtn = document.getElementById('verify-btn');
-  
-  boxes.forEach(box => { box.value = ''; box.classList.remove('filled'); });
-  verifyBtn.disabled = true;
-  
-  boxes.forEach((box, i) => {
-    const newBox = box.cloneNode(true);
-    box.parentNode.replaceChild(newBox, box);
-    
-    newBox.oninput = (e) => {
-      const v = e.target.value.replace(/\D/g, '');
-      e.target.value = v;
-      if (v) {
-        e.target.classList.add('filled');
-        if (i < 3) document.querySelectorAll('.otp-box')[i + 1]?.focus();
-      } else {
-        e.target.classList.remove('filled');
-      }
-      const code = Array.from(document.querySelectorAll('.otp-box')).map(b => b.value).join('');
-      verifyBtn.disabled = code.length !== 4;
-    };
-    
-    newBox.onkeydown = (e) => {
-      if (e.key === 'Backspace' && !newBox.value && i > 0) {
-        document.querySelectorAll('.otp-box')[i - 1]?.focus();
-      }
-    };
-  });
+    if (!nameInput) { showToast('Ismingizni kiriting!'); return; }
+    if (phoneInput.length < 9) { showToast('Raqam noto\'g\'ri!'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Yuborilmoqda...';
+
+    try {
+        const res = await fetch(WEBHOOK_OTP, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: '998' + phoneInput, name: nameInput })
+        });
+
+        const data = await res.json();
+        console.log("Serverdan kelgan javob:", data);
+
+        // n8n dan keladigan kodni aniqlaymiz
+        const receivedOtp = data.otp || data.code;
+
+        if (receivedOtp) {
+            window.pendingCode = String(receivedOtp);
+            showScreen('otp');
+            document.getElementById('otp-sub').textContent = "Kod yuborildi: " + receivedOtp; // Test uchun
+        } else {
+            throw new Error('Kod kelmadi');
+        }
+    } catch (e) {
+        showToast('❌ Xato! Internetni tekshiring.');
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Kod yuborish →';
+    }
 }
 
 function verifyOTP() {
-  const boxes = document.querySelectorAll('.otp-box');
-  const enteredCode = Array.from(boxes).map(b => b.value).join('');
-  
-  // SECURITY CHECKS
-  if (!pendingOTP.isPending) {
-    showToast('❌ Avval kod so\'rang');
-    backToPhone();
-    return;
-  }
-  
-  const OTP_EXPIRY_MS = 5 * 60 * 1000;
-  if (Date.now() - pendingOTP.timestamp > OTP_EXPIRY_MS) {
-    showToast('❌ Kod muddati tugadi. Qaytadan yuboring');
-    pendingOTP = { isPending: false, expectedCode: null, phone: null, customerName: null, timestamp: null };
-    backToPhone();
-    return;
-  }
-  
-  if (!pendingOTP.expectedCode) {
-    showToast('❌ Xatolik yuz berdi. Qaytadan urinib ko\'ring');
-    backToPhone();
-    return;
-  }
-  
-  // STRICT COMPARISON - NO FALLBACKS
-  if (enteredCode === pendingOTP.expectedCode) {
-    state.verified = true;
-    state.verificationTimestamp = Date.now();
-    state.customerName = pendingOTP.customerName;
-    state.phone = pendingOTP.phone;
-    
-    pendingOTP = { isPending: false, expectedCode: null, phone: null, customerName: null, timestamp: null };
-    
-    document.getElementById('modal-otp').classList.remove('show');
-    showToast('✅ Tasdiqlandi!');
-    setTimeout(placeOrder, 500);
-  } else {
-    showToast('❌ Noto\'g\'ri kod! Qaytadan urining');
-    boxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
-    document.querySelectorAll('.otp-box')[0]?.focus();
-    document.getElementById('verify-btn').disabled = true;
-    // DO NOT set verified - BLOCK checkout
-  }
+    let inputCode = '';
+    document.querySelectorAll('.otp-box').forEach(b => inputCode += b.value);
+
+    if (inputCode === window.pendingCode) {
+        showToast('✅ Tasdiqlandi!');
+        showScreen('app');
+    } else {
+        showToast('❌ Kod xato!');
+    }
 }
-
-function backToPhone() {
-  pendingOTP = { isPending: false, expectedCode: null, phone: null, customerName: null, timestamp: null };
-  document.getElementById('modal-otp').classList.remove('show');
-  document.getElementById('modal-phone').classList.add('show');
-  document.querySelectorAll('.otp-box').forEach(b => { b.value = ''; b.classList.remove('filled'); });
-}
-
-// ========== SECURE ORDER SUBMISSION ==========
-async function placeOrder() {
-  // CRITICAL: Never submit without verification
-  if (!state.verified) {
-    showToast('❌ Telefon raqam tasdiqlanmagan');
-    return;
-  }
-  
-  if (getCartCount() === 0) {
-    showToast('❌ Savatcha bo\'sh');
-    return;
-  }
-  
-  const orderId = '#' + String(Math.floor(Math.random() * 9000) + 1000);
-  const branch = BRANCHES.find(b => b.id === state.selectedBranch);
-  
-  const itemsArray = Object.values(state.cart).map(v => ({
-    id: v.id,
-    name: v.name,
-    quantity: v.quantity,
-    price: v.price,
-    total: v.price * v.quantity
-  }));
-  
-  const orderPayload = {
-    customer: {
-      name: state.customerName,
-      phone: state.phone,
-      telegramId: state.tgId
-    },
-    branch: branch ? branch.name : '',
-    preparationTime: state.selectedTime,
-    paymentMethod: state.selectedPayment,
-    note: state.note,
-    items: itemsArray,
-    total: getTotal(),
-    createdAt: new Date().toISOString(),
-    orderId: orderId
-  };
-  
-  try {
-    await fetch(WEBHOOK_ORDER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderPayload)
-    });
-    console.log('Order sent successfully:', orderId);
-  } catch (e) {
-    console.warn('Webhook error (non-critical):', e);
-  }
-  
-  state.orderCount++;
-  state.totalSpent += getTotal();
-  
-  // Reset cart but keep verification for 30 minutes
-  state.cart = {};
-  state.selectedBranch = null;
-  state.selectedTime = null;
-  state.note = '';
-  
-  updateBadge();
-  
-  document.getElementById('success-order-id').textContent = orderId;
-  document.getElementById('success-time-val').textContent = state.selectedTime || '25-30 daqiqa';
-  showScreen('success');
-}
-
-function backToMenu() { showScreen('app'); renderMenu(state.currentCat); }
-
-// ========== UI NAVIGATION ==========
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
-  if (id === 'cart') renderCart();
-  if (id === 'profile') updateProfile();
-  if (id === 'app') renderMenu(state.currentCat);
-}
-
-function switchNav(tab) {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const el = document.getElementById('nav-' + tab);
-  if (el) el.classList.add('active');
-  if (tab === 'cart') showScreen('cart');
-  else if (tab === 'profile') showScreen('profile');
-  else showScreen('app');
-}
-
-// ========== SEARCH ==========
-function handleSearch(q) {
-  const clearBtn = document.getElementById('search-clear');
-  const res = document.getElementById('search-results');
-  const norm = document.getElementById('normal-menu');
-  if (!q.trim()) { clearSearch(); return; }
-  clearBtn.style.display = 'block';
-  res.classList.add('show');
-  norm.style.display = 'none';
-  const ql = q.toLowerCase();
-  const results = MENU_DATA.items.filter(i => 
-    i.name.toLowerCase().includes(ql) || i.desc.toLowerCase().includes(ql) || (i.kw && i.kw.toLowerCase().includes(ql))
-  );
-  res.innerHTML = results.length ? results.map(foodCard).join('') : 
-    `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Topilmadi</div><div class="empty-state-sub">"${q}" bo'yicha natija yo'q</div></div>`;
-}
-
-function clearSearch() {
-  document.getElementById('search-input').value = '';
-  document.getElementById('search-clear').style.display = 'none';
-  const res = document.getElementById('search-results');
-  res.classList.remove('show');
-  res.innerHTML = '';
-  document.getElementById('normal-menu').style.display = 'block';
-}
-
-// ========== PROFILE ==========
-function updateProfile() {
-  document.getElementById('profile-name').textContent = state.customerName || (state.phone || 'Mehmon');
-  document.getElementById('profile-phone').textContent = state.phone || 'Hali kirilmagan';
-  document.getElementById('stat-orders').textContent = state.orderCount;
-  document.getElementById('stat-spent').textContent = Math.round(state.totalSpent / 1000) + 'k';
-}
-
-// ========== TOAST ==========
-let toastT;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-// ========== INIT ==========
-window.addEventListener('load', () => {
-  if (window.Telegram?.WebApp) {
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    const u = Telegram.WebApp.initDataUnsafe?.user;
-    if (u) state.tgId = String(u.id || '');
-  }
-  setTimeout(() => {
-    showScreen('app');
-    renderCategories();
-    renderMenu('all');
-  }, 2000);
-});
-
-document.getElementById('phone-input')?.addEventListener('input', function() {
-  let v = this.value.replace(/\D/g, '');
-  if (v.length > 9) v = v.slice(0, 9);
-  this.value = v;
-});
-</script>
-</body>
-</html>
-```
+   
