@@ -1240,9 +1240,11 @@ async function loadFromSheets(){
       const active = cells[4]?.v;
       if(active===false||active==='FALSE') return;
       if(!name||!price) return;
-      const existing = MENU.items.find(i=>i.id===id);
+      // ID 100 dan katta bo'lsin - eski taomlar bilan to'qnashmaydi
+      const safeId = id < 100 ? id + 100 : id;
+      const existing = MENU.items.find(i=>i.id===safeId);
       if(existing){ existing.name=name; existing.price=price; existing.emoji=emoji; }
-      else { MENU.items.push({id,cat:'extra',emoji,name,desc:'',price,tags:['new'],kw:name.toLowerCase()}); }
+      else { MENU.items.push({id:safeId,cat:'extra',emoji,name,desc:'',price,tags:[],kw:name.toLowerCase()}); }
     });
     console.log('Google Sheets yuklandi');
   } catch(e){ console.warn('Sheets xatosi:',e); }
