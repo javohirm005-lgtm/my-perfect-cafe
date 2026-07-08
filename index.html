@@ -136,8 +136,12 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
   position:absolute;top:46px;right:0;
   background:#fff;border-radius:16px;
   padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.3);
-  display:none;flex-direction:column;gap:4px;
-  min-width:170px;z-index:101;
+  display:none;
+  flex-direction:column !important;
+  gap:4px;
+  min-width:170px;
+  z-index:101;
+  height:auto !important;
   overflow:visible !important;
   animation:dropIn 0.25s cubic-bezier(0.32,1.1,0.6,1);
 }
@@ -159,6 +163,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
   font-weight:500 !important;
   color:#1A0F07 !important;
   text-align:left !important;
+   position:relative !important;
   visibility:visible !important;
   opacity:1 !important;
 }
