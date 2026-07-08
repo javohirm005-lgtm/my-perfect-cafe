@@ -1271,7 +1271,6 @@ function loadLanguage() {
   } catch(e) {}
   updateLangUI();
 }
-
 function changeLang(lang) {
   if (!TRANSLATIONS[lang]) return;
   currentLang = lang;
@@ -1279,14 +1278,11 @@ function changeLang(lang) {
   updateLangUI();
   applyTranslations();
   closeLangDropdown();
-  const appScreen = document.getElementById('screen-app');
-  if (appScreen && appScreen.classList.contains('active')) {
+  if (document.getElementById('screen-app').classList.contains('active')) {
     renderCategories();
     renderMenu(S.currentCat);
   }
-  if (document.getElementById('screen-cart')?.classList.contains('active')) renderCart();
-  if (document.getElementById('screen-history')?.classList.contains('active')) renderHistory();
-  showToast('🌐 ' + {uz:"Til o'zgartirildi", ru:"Язык изменён", en:"Language changed"}[lang]);
+  showToast('✅ ' + {uz:"O'zbekcha", ru:"Русский", en:"English"}[lang]);
 }
 
 function updateLangUI() {
@@ -1326,16 +1322,13 @@ function toggleLangDropdown(e) {
   e.preventDefault();
   const dropdown = document.getElementById('langDropdown');
   const overlay = document.getElementById('langOverlay');
-  
   if (!dropdown || !overlay) return;
-  
-  const isOpen = dropdown.classList.contains('show');
-  
-  if (isOpen) { 
-    closeLangDropdown(); 
-  } else { 
-    dropdown.classList.add('show'); 
-    overlay.classList.add('show'); 
+  if (dropdown.classList.contains('show')) {
+    dropdown.classList.remove('show');
+    overlay.classList.remove('show');
+  } else {
+    dropdown.classList.add('show');
+    overlay.classList.add('show');
   }
 }
 
