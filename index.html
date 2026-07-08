@@ -147,6 +147,9 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
 }
 
 .lang-dropdown.show{display:flex !important;}
+  .lang-dropdown.show .lang-option {
+  display: flex !important;
+}
 .lang-option{
   display:flex !important;
   align-items:center !important;
@@ -1307,8 +1310,15 @@ function updateLangUI() {
   const flags = { uz: '🇺🇿', ru: '🇷🇺', en: '🇬🇧' };
   const langCurrent = document.getElementById('langCurrent');
   if (langCurrent) langCurrent.textContent = flags[currentLang] || '🇺🇿';
+  
   document.querySelectorAll('.lang-option').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    const isActive = btn.dataset.lang === currentLang;
+    btn.classList.toggle('active', isActive);
+    btn.style.display = 'flex';
+    const checkMark = btn.querySelector('.check-mark');
+    if (checkMark) {
+      checkMark.style.display = isActive ? 'block' : 'none';
+    }
   });
 }
 
