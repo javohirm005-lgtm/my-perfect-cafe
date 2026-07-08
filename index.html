@@ -816,7 +816,46 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
 }
 
 /* ======= UTILITIES ======= */
-.hidden { display: none !important; }
+.hidden { display: none !important; } 
+  /* ======= FOOD IMAGE STYLES ======= */
+.food-img-container {
+  width: 90px;
+  height: 90px;
+  background: #f5f5f7;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.food-img-real {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.food-card:active .food-img-real {
+  transform: scale(1.05);
+}
+
+.food-img-emoji {
+  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
 </style>
 </head>
 <body>
@@ -947,7 +986,11 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
       <div class="profile-header-deco"></div>
       <div class="profile-avatar">👤</div>
       <div class="profile-name" id="profile-name">Mehmon</div>
+      <div class="profile-fullname" id="profile-fullname" style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:2px;">Ism Familiya</div>
       <div class="profile-phone" id="profile-phone">Hali kirilmagan</div>
+      <button class="profile-edit-btn" onclick="openProfileEdit()" style="margin-top:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;">
+        ✏️ Tahrirlash
+      </button>
       <div class="profile-stats">
         <div class="stat-box"><div class="stat-num" id="stat-orders">0</div><div class="stat-label">Buyurtma</div></div>
         <div class="stat-box"><div class="stat-num" id="stat-spent">0</div><div class="stat-label">So'm</div></div>
@@ -979,7 +1022,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
         </div>
         <span class="menu-item-arrow">›</span>
       </div>
-      <div class="menu-item" onclick="showToast('📞 +998 71 123 45 67')">
+      <div class="menu-item" onclick="showToast('📞 +998 88 602 56 66')">
         <div class="menu-item-icon">📞</div>
         <div class="menu-item-text">
           <div class="menu-item-title">Aloqa</div>
@@ -990,7 +1033,38 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
     </div>
   </div>
 </div>
-
+<!-- PROFILE EDIT MODAL -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal-card">
+    <div class="modal-handle"></div>
+    <span class="modal-emoji">👤</span>
+    <h2 class="modal-title">Profilni tahrirlash</h2>
+    <p class="modal-sub">Ism, familiya va telefon raqamingizni kiriting</p>
+    <div class="input-group">
+      <label class="input-label">Ism</label>
+      <div class="input-wrap">
+        <span class="input-prefix">👤</span>
+        <input type="text" id="profile-firstname" placeholder="Ismingiz" maxlength="30">
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Familiya</label>
+      <div class="input-wrap">
+        <span class="input-prefix">📝</span>
+        <input type="text" id="profile-lastname" placeholder="Familiyangiz" maxlength="30">
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Telefon raqam</label>
+      <div class="input-wrap">
+        <span class="input-prefix">🇺🇿 +998</span>
+        <input type="tel" id="profile-phone-input" placeholder="90 123 45 67" maxlength="9" inputmode="numeric">
+      </div>
+    </div>
+    <button class="btn-main" onclick="saveProfile()">💾 Saqlash</button>
+    <button style="width:100%;background:transparent;border:none;color:var(--latte);padding:12px;margin-top:8px;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;" onclick="closeProfileEdit()">Bekor qilish</button>
+  </div>
+</div>
 <!-- PHONE MODAL -->
 <div class="modal-overlay" id="modal-phone">
   <div class="modal-card">
@@ -1103,7 +1177,8 @@ const S = {
   cart:{}, currentCat:'all',
   branch:null, time:null, payment:'click', note:'',
   phone:'', name:'', verified:false, verifiedAt:null,
-  orders:0, spent:0, tgId:''
+  orders:0, spent:0, tgId:'',
+  firstName:'', lastName:''
 };
 
 let pendingOTP = { active:false, code:null, phone:null, name:null, at:null };
@@ -1119,6 +1194,7 @@ const TRANSLATIONS = {
     welcome: "Xush kelibsiz!",
     tagline: "Bugun nima buyurtma qilasiz? 😋",
     searchPlaceholder: "Taom qidiring...",
+    menu: "Menyu",
     all: "Barchasi", hot: "Issiq", salad: "Salat", soup: "Sho'rva",
     grill: "Grill", pizza: "Pizza", drinks: "Ichimlik", dessert: "Desert", snack: "Gazak",
     cart: "Savat", history: "Tarix", profile: "Profil",
@@ -1141,6 +1217,7 @@ const TRANSLATIONS = {
   ru: {
     welcome: "Добро пожаловать!", tagline: "Что закажете сегодня? 😋",
     searchPlaceholder: "Поиск блюд...",
+    menu: "Меню",
     all: "Все", hot: "Горячее", salad: "Салаты", soup: "Супы",
     grill: "Гриль", pizza: "Пицца", drinks: "Напитки", dessert: "Десерты", snack: "Закуски",
     cart: "Корзина", history: "История", profile: "Профиль",
@@ -1163,6 +1240,7 @@ const TRANSLATIONS = {
   en: {
     welcome: "Welcome!", tagline: "What would you like to order? 😋",
     searchPlaceholder: "Search dishes...",
+    menu: "Menu",
     all: "All", hot: "Hot", salad: "Salad", soup: "Soup",
     grill: "Grill", pizza: "Pizza", drinks: "Drinks", dessert: "Dessert", snack: "Snacks",
     cart: "Cart", history: "History", profile: "Profile",
@@ -1228,16 +1306,37 @@ function applyTranslations() {
   if (tagline) tagline.textContent = t.tagline;
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+  
+  // Navbar matnlari
+  const navMenu = document.querySelector('#nav-menu .nav-label');
+  const navCart = document.querySelector('#nav-cart .nav-label');
+  const navOrders = document.querySelector('#nav-orders .nav-label');
+  const navProfile = document.querySelector('#nav-profile .nav-label');
+  
+  if (navMenu) navMenu.textContent = t.menu;
+  if (navCart) navCart.textContent = t.cart;
+  if (navOrders) navOrders.textContent = t.history;
+  if (navProfile) navProfile.textContent = t.profile;
+  
   renderCategories();
 }
 
 function toggleLangDropdown(e) {
   e.stopPropagation();
+  e.preventDefault();
   const dropdown = document.getElementById('langDropdown');
   const overlay = document.getElementById('langOverlay');
+  
+  if (!dropdown || !overlay) return;
+  
   const isOpen = dropdown.classList.contains('show');
-  if (isOpen) { closeLangDropdown(); }
-  else { dropdown.classList.add('show'); overlay.classList.add('show'); }
+  
+  if (isOpen) { 
+    closeLangDropdown(); 
+  } else { 
+    dropdown.classList.add('show'); 
+    overlay.classList.add('show'); 
+  }
 }
 
 function closeLangDropdown() {
@@ -1313,8 +1412,19 @@ function foodCard(item){
         <span class="qty-num">${qty}</span>
         <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
        </div>`;
+  
+  // Rasm yoki emoji - aqlli aniqlash
+  const isUrl = item.emoji && (item.emoji.startsWith('http://') || item.emoji.startsWith('https://'));
+  const imageOrEmoji = isUrl 
+    ? `<img src="${item.emoji}" class="food-img-real" alt="${item.name}" 
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+       <span class="food-img-emoji" style="display:none;">🍽️</span>`
+    : `<span class="food-img-emoji">${item.emoji || '🍽️'}</span>`;
+  
   return `<div class="food-card">
-    <div class="food-img">${item.emoji}</div>
+    <div class="food-img-container">
+      ${imageOrEmoji}
+    </div>
     <div class="food-info">
       <div class="food-name">${item.name}</div>
       <div class="food-desc">${item.desc}</div>
@@ -1326,7 +1436,6 @@ function foodCard(item){
     </div>
   </div>`;
 }
-
 function renderMenu(catId){
   const c=document.getElementById('menu-content');
   if(!c) return;
@@ -1724,15 +1833,78 @@ function closeReceipt() {
 // ===== PROFILE =====
 function updateProfile(){
   const pn=document.getElementById('profile-name');
+  const pfn=document.getElementById('profile-fullname');
   const pp=document.getElementById('profile-phone');
   const so=document.getElementById('stat-orders');
   const ss=document.getElementById('stat-spent');
-  if(pn) pn.textContent=S.name||'Mehmon';
+  
+  if(pn) pn.textContent=S.firstName||'Mehmon';
+  if(pfn) {
+    if(S.firstName||S.lastName) {
+      pfn.textContent=(S.firstName+' '+S.lastName).trim();
+    } else {
+      pfn.textContent='';
+    }
+  }
   if(pp) pp.textContent=S.phone||'Hali kirilmagan';
   if(so) so.textContent=S.orders;
   if(ss) ss.textContent=S.spent>=1000?Math.round(S.spent/1000)+'k':S.spent;
 }
+// ===== PROFILE EDIT =====
+function openProfileEdit() {
+  const fn = document.getElementById('profile-firstname');
+  const ln = document.getElementById('profile-lastname');
+  const ph = document.getElementById('profile-phone-input');
+  
+  if (fn) fn.value = S.firstName || '';
+  if (ln) ln.value = S.lastName || '';
+  if (ph) ph.value = S.phone ? S.phone.replace('+998','') : '';
+  
+  document.getElementById('modal-profile').classList.add('show');
+  setTimeout(() => document.getElementById('profile-firstname')?.focus(), 300);
+}
 
+function closeProfileEdit() {
+  document.getElementById('modal-profile').classList.remove('show');
+}
+
+function saveProfile() {
+  const firstName = document.getElementById('profile-firstname')?.value?.trim() || '';
+  const lastName = document.getElementById('profile-lastname')?.value?.trim() || '';
+  const phoneRaw = document.getElementById('profile-phone-input')?.value?.replace(/\D/g,'') || '';
+  
+  if (!firstName) {
+    showToast('❌ Ismni kiriting!');
+    return;
+  }
+  
+  S.firstName = firstName;
+  S.lastName = lastName;
+  if (phoneRaw.length >= 9) {
+    S.phone = '+998' + phoneRaw;
+  }
+  
+  try {
+    const profile = { firstName, lastName, phone: S.phone };
+    localStorage.setItem('mpc_profile', JSON.stringify(profile));
+  } catch(e) {}
+  
+  updateProfile();
+  closeProfileEdit();
+  showToast('✅ Profil saqlandi!');
+}
+
+function loadProfile() {
+  try {
+    const saved = localStorage.getItem('mpc_profile');
+    if (saved) {
+      const profile = JSON.parse(saved);
+      S.firstName = profile.firstName || '';
+      S.lastName = profile.lastName || '';
+      S.phone = profile.phone || '';
+    }
+  } catch(e) {}
+}
 // ===== TOAST =====
 let toastTimer;
 function showToast(msg){
@@ -1790,7 +1962,7 @@ async function loadFromSheets(){
 window.addEventListener('load', async ()=>{
   loadLanguage();
   applyTranslations();
-  
+  loadProfile();
   if(window.Telegram?.WebApp){
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
