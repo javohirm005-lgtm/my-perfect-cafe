@@ -856,7 +856,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
 .food-img-real {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -1321,7 +1321,45 @@ function updateLangUI() {
     }
   });
 }
+function renderLangDropdown() {
+  const dropdown = document.getElementById('langDropdown');
+  if (!dropdown) return;
+  
+  dropdown.innerHTML = '';
+  
+  const langs = [
+    { code: 'uz', flag: '🇺🇿', label: "O'zbekcha" },
+    { code: 'ru', flag: '🇷🇺', label: 'Русский' },
+    { code: 'en', flag: '🇬🇧', label: 'English' },
+  ];
 
+  langs.forEach(({ code, flag, label }) => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-option';
+    btn.dataset.lang = code;
+    btn.innerHTML = `<span style="font-size:20px;">${flag}</span> ${label}`;
+    btn.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      width: 100%;
+      border: none;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1A0F07;
+      border-radius: 12px;
+      position: static;
+      height: auto;
+      transform: none;
+    `;
+    btn.addEventListener('click', () => changeLang(code));
+    dropdown.appendChild(btn);
+  });
+  
+  updateLangUI();
+}
 function applyTranslations() {
   const t = TRANSLATIONS[currentLang];
   const welcome = document.querySelector('.header-welcome');
@@ -1984,6 +2022,7 @@ window.addEventListener('load', async ()=>{
   loadLanguage();
   applyTranslations();
   loadProfile();
+  renderLangDropdown();
   if(window.Telegram?.WebApp){
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
