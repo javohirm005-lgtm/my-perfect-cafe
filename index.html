@@ -903,19 +903,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
         <!-- Language Switcher -->
         <div class="lang-switcher" id="langSwitcher">
           <div class="lang-current" id="langCurrent" onclick="toggleLangDropdown(event)">🇺🇿</div>
-          <div class="lang-dropdown" id="langDropdown">
-         <button class="lang-option active" data-lang="uz" onclick="changeLang('uz')" style="display:flex;align-items:center;gap:10px;padding:12px;width:100%;border:none;background:transparent;cursor:pointer;font-size:14px;">
-  <span style="font-size:20px;">🇺🇿</span> O'zbekcha
-  <span class="check-mark" style="margin-left:auto;color:#C4793A;">✓</span>
-</button>
-<button class="lang-option" data-lang="ru" onclick="changeLang('ru')" style="display:flex;align-items:center;gap:10px;padding:12px;width:100%;border:none;background:transparent;cursor:pointer;font-size:14px;">
-  <span style="font-size:20px;">🇷🇺</span> Русский
-  <span class="check-mark" style="margin-left:auto;color:#C4793A;display:none;">✓</span>
-</button>
-<button class="lang-option" data-lang="en" onclick="changeLang('en')" style="display:flex;align-items:center;gap:10px;padding:12px;width:100%;border:none;background:transparent;cursor:pointer;font-size:14px;">
-  <span style="font-size:20px;">🇬🇧</span> English
-  <span class="check-mark" style="margin-left:auto;color:#C4793A;display:none;">✓</span>
-</button>
+       <div class="lang-dropdown" id="langDropdown"></div>
           </div>
         </div>
         <div class="lang-overlay" id="langOverlay" onclick="closeLangDropdown()"></div>
