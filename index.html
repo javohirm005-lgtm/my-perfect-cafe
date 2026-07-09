@@ -549,7 +549,20 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
   color:var(--latte);font-size:13px;
   text-align:center;line-height:1.5;margin-bottom:22px;
 }
+.lang-modal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px 20px;
+  width: 90%;
+  max-width: 340px;
+  animation: slideUp 0.3s ease;
+}
 
+#langModal.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 /* Receipt Modal */
 #receipt-modal .modal-card{
   background:#f5f0e8;
@@ -894,8 +907,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
       <div class="header-right-group">
         <!-- Language Switcher -->
         <div class="lang-switcher" id="langSwitcher">
-          <div class="lang-current" id="langCurrent" onclick="toggleLangDropdown(event)">🇺🇿</div>
-       <div class="lang-dropdown" id="langDropdown"></div>
+         <div class="lang-current" id="langCurrent" onclick="openLangModal()">🇺🇿</div>
           </div>
         </div>
         <div class="lang-overlay" id="langOverlay" onclick="closeLangDropdown()"></div>
@@ -1108,7 +1120,38 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espress
     <p class="resend-text">Kod kelmadimi? <span class="resend-link" onclick="backToPhone()">Qayta yuborish</span></p>
   </div>
 </div>
-
+<!-- LANGUAGE MODAL -->
+<div class="modal-overlay" id="langModal" onclick="closeLangModal()">
+  <div class="lang-modal-card" onclick="event.stopPropagation()">
+    <h3 style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:16px;color:#1A0F07;">🌐 Tilni tanlang</h3>
+    <button onclick="selectLang('uz')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:2px solid #C4793A;background:rgba(196,121,58,0.1);border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇺🇿 O'zbekcha <span style="margin-left:auto;color:#C4793A;font-weight:700;">✓</span>
+    </button>
+    <button onclick="selectLang('ru')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:1px solid #ddd;background:white;border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇷🇺 Русский
+    </button>
+    <button onclick="selectLang('en')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:1px solid #ddd;background:white;border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇬🇧 English
+    </button>
+    <button onclick="closeLangModal()" style="width:100%;padding:12px;background:transparent;border:none;color:#999;font-size:14px;cursor:pointer;margin-top:8px;">Bekor qilish</button>
+  </div>
+</div>
+  <!-- LANGUAGE MODAL -->
+<div class="modal-overlay" id="langModal" onclick="closeLangModal()">
+  <div class="lang-modal-card" onclick="event.stopPropagation()">
+    <h3 style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:16px;color:#1A0F07;">🌐 Tilni tanlang</h3>
+    <button onclick="selectLang('uz')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:2px solid #C4793A;background:rgba(196,121,58,0.1);border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇺🇿 O'zbekcha <span style="margin-left:auto;color:#C4793A;font-weight:700;">✓</span>
+    </button>
+    <button onclick="selectLang('ru')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:1px solid #ddd;background:white;border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇷🇺 Русский
+    </button>
+    <button onclick="selectLang('en')" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:1px solid #ddd;background:white;border-radius:14px;font-size:16px;cursor:pointer;margin-bottom:8px;color:#1A0F07;">
+      🇬🇧 English
+    </button>
+    <button onclick="closeLangModal()" style="width:100%;padding:12px;background:transparent;border:none;color:#999;font-size:14px;cursor:pointer;margin-top:8px;">Bekor qilish</button>
+  </div>
+</div>
 <!-- RECEIPT MODAL -->
 <div class="modal-overlay" id="receipt-modal" onclick="if(event.target===this)closeReceipt()">
   <div class="modal-card" style="background:#f5f0e8;max-width:400px;border-radius:8px;font-family:'JetBrains Mono',monospace;padding:24px 20px;max-height:85vh;overflow-y:auto">
@@ -1295,6 +1338,37 @@ function updateLangUI() {
     const checkMark = btn.querySelector('.check-mark');
     if (checkMark) {
       checkMark.style.display = isActive ? 'block' : 'none';
+    }
+  });
+}
+  function openLangModal() {
+  document.getElementById('langModal').classList.add('show');
+  updateLangModalButtons();
+}
+
+function closeLangModal() {
+  document.getElementById('langModal').classList.remove('show');
+}
+
+function selectLang(lang) {
+  changeLang(lang);
+  updateLangModalButtons();
+  closeLangModal();
+}
+
+function updateLangModalButtons() {
+  const buttons = document.querySelectorAll('#langModal button[onclick^="selectLang"]');
+  buttons.forEach(btn => {
+    const match = btn.getAttribute('onclick').match(/'(\w+)'/);
+    if (match) {
+      const lang = match[1];
+      if (lang === currentLang) {
+        btn.style.border = '2px solid #C4793A';
+        btn.style.background = 'rgba(196,121,58,0.1)';
+      } else {
+        btn.style.border = '1px solid #ddd';
+        btn.style.background = 'white';
+      }
     }
   });
 }
