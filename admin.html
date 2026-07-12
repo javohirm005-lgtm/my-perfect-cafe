@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Perfect Cafe — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{
+  --cream:#FAF6EF; --espresso:#1A0F07; --caramel:#C4793A; --caramel-light:#E8A96A;
+  --latte:#C9A882; --foam:#F2E8D9; --foam2:#EDE0CC; --green:#3DAA6E; --red:#D94F4F;
+  --shadow:rgba(26,15,7,0.12); --radius:16px; --radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--espresso);min-height:100vh}
+
+/* ===== PIN GATE ===== */
+#pin-gate{
+  position:fixed;inset:0;background:var(--espresso);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:999;
+}
+#pin-gate input{
+  width:180px;padding:14px;font-size:24px;text-align:center;letter-spacing:8px;
+  border-radius:12px;border:none;font-family:'JetBrains Mono',monospace;
+}
+#pin-gate button{
+  padding:12px 32px;border-radius:12px;border:none;background:var(--caramel);
+  color:#fff;font-weight:700;font-size:15px;cursor:pointer;
+}
+#pin-gate p{color:rgba(255,255,255,0.4);font-size:11px;max-width:280px;text-align:center;line-height:1.5}
+#pin-error{color:#ff8080;font-size:13px;min-height:16px}
+
+/* ===== LAYOUT ===== */
+#app{display:none;max-width:900px;margin:0 auto;padding-bottom:40px}
+header{
+  background:var(--espresso);color:#fff;padding:18px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+header h1{font-size:18px;font-weight:700}
+header .conn-dot{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block;margin-right:6px}
+header .conn-dot.ok{background:var(--green)}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--foam2);position:sticky;top:0;z-index:10}
+.tab{flex:1;padding:14px;text-align:center;font-weight:600;font-size:13px;color:var(--latte);cursor:pointer;border-bottom:3px solid transparent}
+.tab.active{color:var(--caramel);border-color:var(--caramel)}
+main{padding:16px}
+.card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 2px 12px var(--shadow)}
+.empty{text-align:center;padding:50px 20px;color:var(--latte)}
+
+/* ===== ORDERS TAB ===== */
+.order-card .row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.order-card .oid{font-weight:800;color:var(--caramel);font-family:'JetBrains Mono',monospace}
+.order-card .otime{font-size:11px;color:var(--latte)}
+.order-card .ocust{font-size:13px;margin-bottom:6px}
+.order-card .oitems{font-size:12px;color:#555;line-height:1.7;margin-bottom:8px}
+.order-card .ototal{font-weight:700;font-size:15px;margin-bottom:10px}
+.status-select{display:flex;gap:6px;flex-wrap:wrap}
+.status-btn{
+  flex:1;min-width:70px;padding:9px 6px;border-radius:var(--radius-sm);border:1.5px solid var(--foam2);
+  background:var(--foam);font-size:11px;font-weight:600;cursor:pointer;text-align:center;color:var(--espresso);
+}
+.status-btn.active{background:var(--caramel);border-color:var(--caramel);color:#fff}
+
+/* ===== MENU TAB ===== */
+.menu-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--foam2)}
+.menu-row:last-child{border-bottom:none}
+.menu-row .m-emoji{font-size:26px;width:36px;text-align:center}
+.menu-row .m-info{flex:1;min-width:0}
+.menu-row .m-name{font-weight:600;font-size:13px}
+.menu-row .m-price{font-size:12px;color:var(--caramel);font-weight:600}
+.menu-row .m-actions{display:flex;gap:6px}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--foam);cursor:pointer;font-size:14px}
+.icon-btn.danger{background:#FFF0E6;color:var(--red)}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-grid input,.form-grid select,.form-grid textarea{
+  padding:11px;border-radius:var(--radius-sm);border:1.5px solid var(--foam2);
+  font-size:13px;font-family:'Outfit',sans-serif;background:var(--foam);width:100%
+}
+.form-grid .full{grid-column:1/-1}
+.btn-main{
+  width:100%;background:linear-gradient(135deg,#C4793A,#9B5520);color:#fff;border:none;
+  border-radius:var(--radius-sm);padding:13px;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px
+}
+.btn-secondary{
+  width:100%;background:var(--foam);color:var(--espresso);border:1.5px solid var(--foam2);
+  border-radius:var(--radius-sm);padding:11px;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px
+}
+
+/* ===== REPORT TAB ===== */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:var(--radius);padding:18px;text-align:center;box-shadow:0 2px 12px var(--shadow)}
+.stat-card .num{font-size:26px;font-weight:800;color:var(--caramel)}
+.stat-card .lbl{font-size:11px;color:var(--latte);margin-top:4px}
+.top-item-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--foam2)}
+.top-item-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div id="pin-gate">
+  <div style="font-size:40px">🔐</div>
+  <div style="font-weight:700;font-size:18px">Admin panel</div>
+  <input type="password" id="pin-input" inputmode="numeric" maxlength="6" placeholder="PIN">
+  <div id="pin-error"></div>
+  <button onclick="checkPin()">Kirish</button>
+</div>
+
+<div id="app">
+  <header>
+    <h1>☕ My Perfect Cafe — Admin</h1>
+    <div><span class="conn-dot" id="connDot"></span><span id="connText" style="font-size:12px">Ulanmoqda...</span></div>
+  </header>
+  <div class="tabs">
+    <div class="tab active" data-tab="orders" onclick="switchTab('orders')">📦 Buyurtmalar</div>
+    <div class="tab" data-tab="menu" onclick="switchTab('menu')">🍽️ Menyu</div>
+    <div class="tab" data-tab="report" onclick="switchTab('report')">📊 Hisobot</div>
+  </div>
+  <main>
+    <div id="tab-orders"></div>
+    <div id="tab-menu" style="display:none"></div>
+    <div id="tab-report" style="display:none"></div>
+  </main>
+</div>
+
+<script>
+// ⚠️ Bu yerga index.html dagi bilan AYNAN BIR XIL Firebase configni qo'ying
+const firebaseConfig = {
+  apiKey: "AIzaSyD2wmyDJRGk-AK-H_-8vLM7zhxWTAZLuLw",
+  authDomain: "my-perfect-cafe-34a0b.firebaseapp.com",
+  databaseURL: "https://my-perfect-cafe-34a0b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "my-perfect-cafe-34a0b"
+};
+// PIN kodni o'zingiznikiga almashtiring (faqat 4-6 xonali raqam)
+const ADMIN_PIN = "1234";
+
+// Mijozga status o'zgarganda avtomatik Telegram xabari yuborish uchun.
+// index.html dagi BOT_TOKEN bilan AYNAN BIR XIL bo'lishi kerak (bir xil bot).
+const BOT_TOKEN = '8868984835:AAHiHftGjYKsTSKzC6IrTrDIpcWnL4EGIpc';
+const STATUS_MESSAGES = {
+  accepted:   o => `✅ <b>Buyurtmangiz qabul qilindi!</b>\n\n📋 Buyurtma: <b>#${o.id}</b>\nTez orada tayyorlashni boshlaymiz.`,
+  preparing:  o => `👨‍🍳 <b>Buyurtmangiz tayyorlanmoqda!</b>\n\n📋 Buyurtma: <b>#${o.id}</b>\nOshpazlarimiz hozir shug'ullanmoqda.`,
+  delivering: o => `🛵 <b>Buyurtmangiz yo'lda!</b>\n\n📋 Buyurtma: <b>#${o.id}</b>\nTez orada yetib boradi.`,
+  delivered:  o => `🎉 <b>Buyurtmangiz yetkazildi!</b>\n\n📋 Buyurtma: <b>#${o.id}</b>\nYoqimli ishtaha! Bizni tanlaganingiz uchun rahmat 🙏`
+};
+async function notifyCustomer(order, status){
+  if(!order?.customer?.tgId){ return {sent:false, reason:'no-tgid'}; }
+  const textFn = STATUS_MESSAGES[status];
+  if(!textFn) return {sent:false, reason:'no-template'};
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:order.customer.tgId, text:textFn(order), parse_mode:'HTML'})
+    });
+    const data = await res.json();
+    return {sent: !!data.ok, reason: data.ok ? null : data.description};
+  } catch(e){
+    return {sent:false, reason:e.message};
+  }
+}
+
+let db = null;
+let fbReady = false;
+
+function checkPin(){
+  const val = document.getElementById('pin-input').value;
+  if(val === ADMIN_PIN){
+    document.getElementById('pin-gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('pin-error').textContent = '❌ Noto\'g\'ri PIN';
+  }
+}
+document.getElementById('pin-input').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPin(); });
+
+function initApp(){
+  if(!window.firebase || firebaseConfig.apiKey === 'YOUR_API_KEY'){
+    document.getElementById('connText').textContent = 'Firebase config kiritilmagan';
+    document.getElementById('tab-orders').innerHTML = '<div class="card empty">⚠️ Avval firebaseConfig ni to\'ldiring (index.html dagi bilan bir xil bo\'lishi kerak).</div>';
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    fbReady = true;
+    document.getElementById('connDot').classList.add('ok');
+    document.getElementById('connText').textContent = 'Ulandi';
+  } catch(e){
+    document.getElementById('connText').textContent = 'Xatolik: ' + e.message;
+    return;
+  }
+  listenOrders();
+  listenMenu();
+}
+
+// ===== TABS =====
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  ['orders','menu','report'].forEach(n=>{
+    document.getElementById('tab-'+n).style.display = (n===name) ? 'block' : 'none';
+  });
+  if(name==='report') renderReport();
+}
+
+// ===== ORDERS =====
+const STATUS_STEPS = [
+  {key:'accepted', label:'Qabul qilindi', icon:'✅'},
+  {key:'preparing', label:'Tayyorlanmoqda', icon:'👨‍🍳'},
+  {key:'delivering', label:"Yo'lda", icon:'🛵'},
+  {key:'delivered', label:'Yetkazildi', icon:'🎉'}
+];
+let ORDERS = {};
+
+function listenOrders(){
+  db.ref('orders').on('value', snap=>{
+    ORDERS = snap.val() || {};
+    renderOrders();
+  });
+}
+
+function renderOrders(){
+  const list = Object.values(ORDERS).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const el = document.getElementById('tab-orders');
+  if(!list.length){ el.innerHTML = '<div class="card empty">Hozircha buyurtmalar yo\'q</div>'; return; }
+  el.innerHTML = list.map(o=>{
+    const itemsHtml = (o.items||[]).map(i=>`• ${i.name} × ${i.qty}`).join('<br>');
+    const time = o.createdAt ? new Date(o.createdAt).toLocaleString('uz-UZ',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    const statusBtns = STATUS_STEPS.map(s=>`
+      <div class="status-btn${o.status===s.key?' active':''}" onclick="setOrderStatus('${o.id}','${s.key}')">${s.icon} ${s.label}</div>
+    `).join('');
+    return `<div class="card order-card">
+      <div class="row1"><span class="oid">#${o.id}</span><span class="otime">${time}</span></div>
+      <div class="ocust">👤 ${o.customer?.name||'—'} · 📞 ${o.customer?.phone||'—'} · 🏪 ${o.branch||'—'}</div>
+      <div class="oitems">${itemsHtml}</div>
+      <div class="ototal">💰 ${(o.total||0).toLocaleString('uz-UZ')} so'm</div>
+      <div class="status-select">${statusBtns}</div>
+    </div>`;
+  }).join('');
+}
+
+async function setOrderStatus(orderId, status){
+  if(!fbReady) return;
+  const order = ORDERS[orderId];
+  if(order && order.status === status) return; // o'zgarish yo'q, xabar yuborilmaydi
+  await db.ref('orders/'+orderId+'/status').set(status);
+  if(order){
+    const result = await notifyCustomer({...order, status}, status);
+    if(result.sent) showAdminToast('📨 Mijozga xabar yuborildi');
+    else if(result.reason === 'no-tgid') showAdminToast('⚠️ Mijoz Telegram ID topilmadi — xabar yuborilmadi');
+    else showAdminToast('❌ Xabar yuborilmadi: '+result.reason);
+  }
+}
+
+let _toastTimer;
+function showAdminToast(msg){
+  let t = document.getElementById('admin-toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'admin-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:2000;opacity:0;transition:opacity .25s;box-shadow:0 6px 20px rgba(0,0,0,0.3)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>{ t.style.opacity = '0'; }, 2500);
+}
+
+// ===== MENU =====
+let FIREBASE_MENU = {};
+function listenMenu(){
+  db.ref('menu').on('value', snap=>{
+    FIREBASE_MENU = snap.val() || {};
+    renderMenuTab();
+  });
+}
+
+function renderMenuTab(){
+  const items = Object.values(FIREBASE_MENU).filter(i=>i && i.active !== false);
+  const el = document.getElementById('tab-menu');
+  const rowsHtml = items.length ? items.map(i=>`
+    <div class="menu-row">
+      <div class="m-emoji">${i.emoji||'🍽️'}</div>
+      <div class="m-info">
+        <div class="m-name">${i.name||''}</div>
+        <div class="m-price">${(i.price||0).toLocaleString('uz-UZ')} so'm</div>
+      </div>
+      <div class="m-actions">
+        <button class="icon-btn" onclick="editMenuItem(${i.id})">✏️</button>
+        <button class="icon-btn danger" onclick="deleteMenuItem(${i.id})">🗑️</button>
+      </div>
+    </div>`).join('') : '<div class="empty" style="padding:20px">Hozircha Firebase orqali qo\'shilgan taom yo\'q. Bu yerda faqat SIZ qo\'shgan/tahrirlagan taomlar ko\'rinadi — asosiy 20 taomni index.html ichida tahrirlaysiz.</div>';
+
+  el.innerHTML = `
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:10px">➕ Yangi taom / mavjudini tahrirlash</div>
+      <input type="hidden" id="m-id">
+      <div class="form-grid">
+        <input type="text" id="m-name" placeholder="Nomi">
+        <input type="number" id="m-price" placeholder="Narxi (so'm)">
+        <input type="text" id="m-emoji" placeholder="Emoji (masalan 🍕)">
+        <select id="m-cat">
+          <option value="hot">Issiq</option><option value="salad">Salat</option>
+          <option value="soup">Sho'rva</option><option value="grill">Grill</option>
+          <option value="pizza">Pizza</option><option value="drinks">Ichimlik</option>
+          <option value="dessert">Desert</option><option value="snack">Gazak</option>
+          <option value="extra" selected>Yangilar</option>
+        </select>
+        <textarea id="m-desc" placeholder="Tavsif (ixtiyoriy)" class="full" rows="2"></textarea>
+      </div>
+      <button class="btn-main" onclick="saveMenuItem()">💾 Saqlash</button>
+      <button class="btn-secondary" onclick="clearMenuForm()">Yangi taom shakli</button>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:6px">📋 Firebase orqali boshqarilayotgan taomlar</div>
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+function clearMenuForm(){
+  document.getElementById('m-id').value = '';
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-price').value = '';
+  document.getElementById('m-emoji').value = '';
+  document.getElementById('m-desc').value = '';
+  document.getElementById('m-cat').value = 'extra';
+}
+
+function editMenuItem(id){
+  const i = FIREBASE_MENU[id];
+  if(!i) return;
+  document.getElementById('m-id').value = i.id;
+  document.getElementById('m-name').value = i.name||'';
+  document.getElementById('m-price').value = i.price||'';
+  document.getElementById('m-emoji').value = i.emoji||'';
+  document.getElementById('m-desc').value = i.desc||'';
+  document.getElementById('m-cat').value = i.cat||'extra';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function saveMenuItem(){
+  if(!fbReady) return;
+  const idField = document.getElementById('m-id').value;
+  const name = document.getElementById('m-name').value.trim();
+  const price = Number(document.getElementById('m-price').value);
+  const emoji = document.getElementById('m-emoji').value.trim() || '🍽️';
+  const desc = document.getElementById('m-desc').value.trim();
+  const cat = document.getElementById('m-cat').value;
+  if(!name || !price){ alert('Nomi va narxini kiriting'); return; }
+  // Yangi taom bo'lsa, mavjud ID'lar bilan to'qnashmasligi uchun katta oraliqdan ID beramiz
+  const id = idField ? Number(idField) : (5000 + Number(String(Date.now()).slice(-5)));
+  db.ref('menu/'+id).set({id, name, price, emoji, desc, cat, active:true});
+  clearMenuForm();
+}
+
+function deleteMenuItem(id){
+  if(!fbReady) return;
+  if(!confirm("Bu taomni o'chirishni tasdiqlaysizmi?")) return;
+  db.ref('menu/'+id).set({id, active:false});
+}
+
+// ===== REPORT =====
+function renderReport(){
+  const list = Object.values(ORDERS);
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const todayOrders = list.filter(o=>o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const todayRevenue = todayOrders.reduce((s,o)=>s+(o.total||0),0);
+  const allRevenue = list.reduce((s,o)=>s+(o.total||0),0);
+
+  const itemCounts = {};
+  todayOrders.forEach(o=>(o.items||[]).forEach(i=>{ itemCounts[i.name] = (itemCounts[i.name]||0) + i.qty; }));
+  const topItems = Object.entries(itemCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const el = document.getElementById('tab-report');
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${todayOrders.length}</div><div class="lbl">Bugungi buyurtmalar</div></div>
+      <div class="stat-card"><div class="num">${(todayRevenue/1000).toFixed(0)}k</div><div class="lbl">Bugungi daromad (so'm)</div></div>
+      <div class="stat-card"><div class="num">${list.length}</div><div class="lbl">Jami buyurtmalar</div></div>
+      <div class="stat-card"><div class="num">${(allRevenue/1000).toFixed(0)}k</div><div class="lbl">Jami daromad (so'm)</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px">🔥 Bugun eng ko'p sotilganlar</div>
+      ${topItems.length ? topItems.map(([name,qty])=>`<div class="top-item-row"><span>${name}</span><span style="font-weight:700">${qty} ta</span></div>`).join('') : '<div class="empty" style="padding:16px">Bugun hali buyurtma yo\'q</div>'}
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
